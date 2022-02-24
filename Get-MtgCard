@@ -1,0 +1,75 @@
+function Get-MtgCard {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$True,
+        ValueFromPipeline=$true)]
+        [string[]] $CardName,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("Scryfall", "MtgJson")]
+        [string] $Source = "Scryfall",
+        [switch] $IncludeImage,
+        [switch] $SaveCopy
+    )
+
+    BEGIN {
+        # Decide which API to query
+        if ($Source -eq "MtgJson") {
+            $ApiTarget = "https://mtgjson.com/graphq1"
+            # Pull auth headers
+
+            # Construct query string
+
+            # Construct card string
+
+        }
+        else {
+            $ApiTarget = "https://api.scryfall.com"
+            
+            # Construct query string
+            $qry = "/cards/search?q="
+            
+        }
+    }
+
+    PROCESS {
+        foreach ($card in $CardName) {
+            
+            # Construct the API string
+            $request = $ApiTarget + $qry + $card
+
+            # Send request
+            $result = Invoke-WebRequest -Uri $request -Method GET
+
+            # Set status code
+            switch ($result.StatusCode) {
+                200 { $status = "Success" }
+                400 { $status = "Bad request"}
+                Default { $status = "Failed: $($result.StatusCode)"}
+            }
+
+            # Extract information from the JSON output and format as object
+            $rawJson = $result.Content | ConvertFrom-Json
+            
+            # Build object properties
+            $cardProperties = @{'Status' = "$status"
+                                'CardName' = "$rawJson.data.name"
+                                'ManaCost' = "$rawJson.data.mana_cost"
+                                'ConvertedManaCost' = "$rawJson.data.cmc"
+                                'CardType' = "$rawJson.data.type_line"
+                                'Rarity' = "$rawJson.data.rarity"
+                                'LegalFormats' = "$rawJson.data.legalities"
+                                'CardUri' = "$rawJson.data.scryfall_uri"
+                                'ReprintStatus' = "$rawJson.data.reprint"
+                                'SetCode' = "$rawJson.data.set"
+                                'SetName' = "$rawJson.data.set_name"
+                                }
+            
+            # Create the card object
+            $object = New-Object -TypeName PSObject -Property $cardProperties
+            Write-Output $object
+        }
+    }
+
+    END {}
+
+}
